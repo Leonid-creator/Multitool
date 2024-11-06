@@ -1,4 +1,5 @@
 #include <OLED_I2C.h>
+#include <MultitoolOLED.h>
 
 class Button{
   private:
@@ -20,7 +21,7 @@ class Button{
   }
 };
 
-OLED  myOLED(SDA, SCL);
+MultitoolOLED newOLED(SDA,SCL);
 extern uint8_t SmallFont[];
 extern uint8_t BigNumbers[];
 Button button_UP(4);
@@ -58,13 +59,8 @@ void getBrightness(){
       brightness_1 = 0;
       brightness_2 = 0;
     }
-
-    myOLED.clrScr();
-    myOLED.print("Brightness", CENTER, 0);
-    myOLED.setFont(BigNumbers);
-    myOLED.printNumI(averageBrightness_1 + averageBrightness_2, CENTER, 20);
-    myOLED.setFont(SmallFont);
-    myOLED.update();
+    newOLED.displayGetBrightness(averageBrightness_1 + averageBrightness_2);
+    
     if(button_BACK.buttonWasPressed()){
       break;
     }
@@ -81,23 +77,13 @@ void setPWM(){
       pwmIsReady = true;
       break;
     }
-    myOLED.clrScr();
-    myOLED.print("PWM is not ready", CENTER, 0);
-    myOLED.print("set the potentiometer", CENTER, 10);
-    myOLED.print(" to zero position", CENTER, 20);
-    myOLED.printNumI(map(pwmValue, 0, 255, 0, 100), CENTER, 30);
-    myOLED.update();
+    newOLED.displayPWMIsNotReady(pwmValue);
   }
 
   while(true){
     pwmValue = (analogRead(3) / 4);
     analogWrite(9, pwmValue);
-    myOLED.clrScr();
-    myOLED.print("PWM", CENTER, 0);
-    myOLED.setFont(BigNumbers);
-    myOLED.printNumI(map(pwmValue, 0, 255, 0, 100), CENTER, 20);
-    myOLED.setFont(SmallFont);
-    myOLED.update();
+    newOLED.displaySetPWM(pwmValue);
     if(button_BACK.buttonWasPressed()){
       analogWrite(9, 0);
       break;
@@ -113,13 +99,8 @@ void getVoltage(){
     analogWrite(9, pwmValue);
     voltage = analogRead(2);
 
-    myOLED.clrScr();
-    myOLED.print("PWM", CENTER, 0);
-    myOLED.printNumI(map(pwmValue, 0, 255, 0, 100), CENTER, 20);
-    myOLED.setFont(BigNumbers);
-    myOLED.printNumI(voltage, CENTER, 30);
-    myOLED.setFont(SmallFont);
-    myOLED.update();
+    newOLED.displayGetVoltage(pwmValue, voltage);
+
     if(button_BACK.buttonWasPressed()){
       analogWrite(9, 0);
       break;
@@ -128,19 +109,13 @@ void getVoltage(){
 }
 
 void setup() {
-  if(!myOLED.begin(SSD1306_128X64)){
-    while(1);
-  }
-  myOLED.setFont(SmallFont);
   Serial.begin(9600);
   
   pinMode(13, OUTPUT);
-
   pinMode(2, INPUT_PULLUP); //button down
   pinMode(4, INPUT_PULLUP); //button up
   pinMode(7, INPUT_PULLUP); //button enter
   pinMode(8, INPUT_PULLUP); //button back
-
   pinMode(A6, INPUT); //first light sensor
   pinMode(A7, INPUT); //second light sensor
   pinMode(A3, INPUT); //potentiometer
@@ -158,25 +133,14 @@ void loop() {
     cursorPosition++;
   }
   cursorPosition = constrain(cursorPosition, 1, 4);
+  
+  newOLED.displayMenu(cursorPosition);
 
-  if(int(millis()-oledUpdateTimer) >= oledUpdateDelay){
-    oledUpdateTimer = millis();
-    myOLED.clrScr();
-    myOLED.print("MAIN MENU", CENTER, 0);
-    myOLED.print("Brightness", 10, 10);
-    myOLED.print("Get voltage", 10, 20);
-    myOLED.print("Set voltage (soon)", 10, 30);
-    myOLED.print("Set PWM", 10, 40);
-    myOLED.print(">", 0, cursorPosition*10);
-    myOLED.update();
-    oledUpdateCount++;
-  }
-
-  if(int(millis()-fpsTimer) >= fpsDelay){
-    fps = oledUpdateCount;
-    oledUpdateCount = 0;
-    fpsTimer = millis();
-  }
+  // if(int(millis()-fpsTimer) >= fpsDelay){
+  //   fps = oledUpdateCount;
+  //   oledUpdateCount = 0;
+  //   fpsTimer = millis();
+  // }
   
   if(button_ENTER.buttonWasPressed()){
     if(cursorPosition == 1){
